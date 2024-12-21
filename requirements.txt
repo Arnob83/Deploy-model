@@ -1,5 +1,9 @@
-# Minimal CPU-Only Requirements for a Streamlit + XGBoost + SHAP App
+# Upgrade packaging tools first to avoid "metadata-generation-failed" issues:
+pip==24.3.1
+setuptools==68.2.2
+wheel==0.41.3
 
+# Minimal CPU-Only Requirements for a Streamlit + XGBoost + SHAP App
 numpy==1.26.4
 pandas==2.2.2
 scikit-learn==1.2.2
@@ -10,3 +14,4 @@ shap==0.46.0
 
 streamlit==1.41.1
 requests==2.32.3
+

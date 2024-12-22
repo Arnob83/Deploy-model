@@ -3,13 +3,20 @@ import streamlit as st
 import shap
 import matplotlib.pyplot as plt
 import pandas as pd
+import requests
+from io import BytesIO
 
-# Note: This model internally calculates log-odds. We do not display those log-odds
-# in the final output, but they inform the final "Approved" vs. "Rejected" decision.
+# Load the trained model from GitHub
+@st.cache_data
+def load_model():
+    url = "https://raw.githubusercontent.com/Arnob83/Deploy-model/main/XGBoost_model.pkl"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return pickle.load(BytesIO(response.content))
+    else:
+        raise FileNotFoundError(f"Failed to download the model file. Status code: {response.status_code}")
 
-# Load the trained model
-with open('/content/drive/MyDrive/Project _Defense ***/final paper/code/final code/loan_Copy/XGBoost_model.pkl', 'rb') as pickle_in:
-    classifier = pickle.load(pickle_in)
+classifier = load_model()
 
 @st.cache_data
 def prediction(Education_1, ApplicantIncome, CoapplicantIncome, Credit_History, Loan_Amount_Term):
@@ -36,16 +43,12 @@ def prediction(Education_1, ApplicantIncome, CoapplicantIncome, Credit_History, 
 
 def explain_with_bar_chart_and_text(input_data, final_result):
     """
-    final_result = 'Approved' or 'Rejected'
-    Returns (plt_object, explanation_text).
+    Generates a SHAP bar chart and text explanation.
     """
-
     # Initialize SHAP explainer
     explainer = shap.Explainer(classifier)
     shap_values = explainer(input_data)
 
-    # For binary classification, shap_values.values[0] might have shape (n_features, 2).
-    # Pick the column corresponding to the predicted class.
     shap_values_for_first_sample = shap_values.values[0]
     predicted_class = 1 if final_result == 'Approved' else 0
     if shap_values_for_first_sample.ndim > 1:
@@ -63,7 +66,7 @@ def explain_with_bar_chart_and_text(input_data, final_result):
     plt.ylabel("Features")
     plt.tight_layout()
 
-    # --- Generate a text explanation (no direct log-odds shown) ---
+    # --- Generate a text explanation ---
     explanation_text = "Explanation of Features and Their SHAP Contributions:\n\n"
     for feature, shap_value in contributions.items():
         actual_value = input_data[feature].iloc[0]
@@ -82,7 +85,7 @@ def explain_with_bar_chart_and_text(input_data, final_result):
                 f"- **{feature}** = {actual_value}, no significant impact (SHAP: 0).\n"
             )
 
-    # Most Influential Feature (largest absolute SHAP)
+    # Most Influential Feature
     largest_contributor_feature = max(contributions, key=lambda k: abs(contributions[k]))
     largest_contributor_value = contributions[largest_contributor_feature]
     explanation_text += (
